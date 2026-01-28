@@ -1,0 +1,136 @@
+task: FeatureTransfer
+output_path: tmp/featureadaptation/$0__$1__$2__$3
+clear_output_path: True
+
+SourceSegmentationDataset_params:
+    path: $0/$1
+    merge:
+        - train,val,test:$0/zca/$2/$1
+        - train,val,test:$0/zcacorr/$2/$1
+    random_seed: 0
+    patch_size: [256, 256]
+    training_samples: 10000
+    normalization:
+        independent_channels: none
+        method: zscore
+        fixed_depth_std: 30
+    augmentation:
+        <<: *augmentation-defaults
+
+TargetSegmentationDataset_params:
+    path: $0/$3/$1/$2
+    random_seed: 0
+    patch_size: [256, 256]
+    training_samples: 10000
+    normalization:
+        independent_channels: none
+        method: zscore
+        fixed_depth_std: 30
+    augmentation:
+        <<: *augmentation-defaults
+
+ForestEnsemble_params:
+    base_model: SegForestNet
+    size: 3
+    rng_seed: -2
+    num_ignored_branches_during_training: 0
+
+large_encoder: &large-encoder
+    backbone: legacy_xception
+    pretrained: True
+    downsampling: 3
+    resample_all_stages: False
+    concatenate_stages: [2, 3]
+    use_bias: False
+    activation: ReLU
+    normalization: BatchNorm2d
+    dropout:
+        channelwise: False
+
+SegForestNet_params:
+    <<: *SegForestNet-defaults
+    encoder:
+        <<: *large-encoder
+    features:
+        context: 0
+        dct_sidechannel:
+            type: 0 # 0 = disabled, otherwise see documentation of SciPy's dctn function
+            num_features: 96
+            num_res_blocks: 0
+            dropout: 0.05
+    decoder:
+        num_blocks: 5
+        context: 1
+        intermediate_features: 128
+        use_residual_blocks: True
+        vq:
+            type: [0, 0]
+            codebook_size: 512
+            normalized_length: 0
+            loss_weights: [1, 1]
+            hard: True
+            temperature:
+                parameters: [epoch, epochs]
+                func: min(epoch,round(0.8*epochs))/round(0.8*epochs)
+                #func: 1-np.cos(0.5*np.pi*epoch/(epochs-1))
+                value_range: [2, 0.1]
+            loss_weight:
+                parameters: [epoch, epochs]
+                func: 0
+                value_range: [.05, .05]
+    trees:
+        - num_features:
+            shape: 44
+            content: 40
+          shape_to_content: 0
+          graph: BSPTree(2, Line)
+          classifier: []
+          classifier_skip_from: 1
+          classifier_context: 1
+          one_tree_per_class: True
+          dropout:
+              shape: 0.5
+              content: 0.5
+    loss:
+        cross_entropy: pixels
+        ce_constant: 10
+        distribution_metric: gini
+        min_region_size: 4
+        weights: [0.678, 0.19, 0.115, 0.017, 0]
+              
+FeatureTransfer_params:
+    source_dataset: [AdaptedSegmentationDataset, SourceSegmentationDataset]
+    target_dataset: [AdaptedSegmentationDataset, TargetSegmentationDataset]
+    model: ForestEnsemble
+    model_epochs: [0, 1]
+    model_weights: tmp/model.pt.xz
+    mini_batch_size: 32
+    augmentation:
+        phase_one:
+            rotate_and_flip: False
+            overlap: 0.15
+        phase_two:
+            rotate_and_flip: True
+            overlap: 0.75
+    pre_decoders:
+        enabled: False
+        partitioning: single
+        method: zscore
+    in_decoders:
+        shape: [False, False, False, False, False]
+        content: [False, True, False, False, False]
+        method: zscore
+    trees:
+        shape:
+            enabled: False
+            transform_parameters: 1
+            separate_nodes: False
+            method: mean
+        content:
+            enabled: False
+            method: zscore
+    output:
+        enabled: False
+        method: zscore
+    ignored_subsets: []
+    save_logits: True

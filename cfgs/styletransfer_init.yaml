@@ -1,0 +1,50 @@
+task: StyleTransfer
+output_path: tmp/datasets/$0
+clear_output_path: True
+
+SegmentationDataset_params:
+    <<: *$0-defaults
+    random_seed: 0
+    patch_size: [256, 256]
+    training_samples: 10000
+    #channels:
+    #    input: [ndvi, ir, red, green, depth]    
+    normalization:
+        independent_channels: none
+        method: zscore
+        fixed_depth_std: 30
+    augmentation:
+        <<: *augmentation-defaults    
+
+StyleTransfer_params:
+    source_dataset: SegmentationDataset
+    target_dataset: SegmentationDataset
+    memory_limit: 16
+    augmentation:
+        phase_one:
+            rotate_and_flip: False
+            overlap: 0.05
+        phase_two:
+            rotate_and_flip: True
+            overlap: 0.05
+    fft:
+        windowing:
+            enabled: False
+            func: hanning
+            beta: 14
+            circular_symmetry: True
+        across_channels: False
+        sampling_area_shape: circle
+        amplitude_radius: 0.05
+        amplitude_center: True
+        phase_radius: 0.05
+        separate_amplitude_and_phase: True
+        per_coefficient: True
+        method: mean
+    ignored_subsets: []
+    save_dataset: True
+    #model: ForestEnsemble
+    model_epochs: [0, 1]
+    model_weights_path: tmp/*.pt.xz
+    mini_batch_size: 32
+    save_logits: False

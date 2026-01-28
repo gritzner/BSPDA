@@ -1,0 +1,91 @@
+task: EvalModels
+output_path: tmp/eval/$0__$1__$2__$3
+clear_output_path: True
+
+AdaptedSegmentationDataset_params:
+    path: $0/$3/$1/$2
+    random_seed: 0
+    patch_size: [256, 256]
+    training_samples: 2500000
+    normalization:
+        independent_channels: none
+        method: zscore
+        fixed_depth_std: 30
+    augmentation:
+        <<: *augmentation-defaults
+    
+ForestEnsemble_params:
+    base_model: SegForestNet
+    size: 3
+    rng_seed: -2
+    num_ignored_branches_during_training: 0
+
+large_encoder: &large-encoder
+    backbone: legacy_xception
+    pretrained: True
+    downsampling: 3
+    resample_all_stages: False
+    concatenate_stages: [2, 3]
+    use_bias: False
+    activation: ReLU
+    normalization: BatchNorm2d
+    dropout:
+        channelwise: False
+        
+SegForestNet_params:
+    <<: *SegForestNet-defaults
+    encoder:
+        <<: *large-encoder
+    features:
+        context: 0
+        dct_sidechannel:
+            type: 0 # 0 = disabled, otherwise see documentation of SciPy's dctn function
+            num_features: 96
+            num_res_blocks: 0
+            dropout: 0.05
+    decoder:
+        num_blocks: 5
+        context: 1
+        intermediate_features: 128
+        use_residual_blocks: True
+        vq:
+            type: [0, 0] # 0 = disabled
+            codebook_size: 512
+            normalized_length: 0
+            loss_weights: [1, 1]
+            one_hot_during_eval: True
+            hard: True
+            temperature:
+                parameters: [epoch, epochs]
+                func: min(epoch/5, 1)
+                value_range: [2, 0.1]
+            loss_weight:
+                parameters: [epoch, epochs]
+                func: 0
+                value_range: [.05, .05]
+    trees:
+        - num_features:
+            shape: 44
+            content: 40
+          shape_to_content: 0
+          graph: BSPTree(2, Line)
+          classifier: []
+          classifier_skip_from: 1
+          classifier_context: 1
+          one_tree_per_class: True
+          dropout:
+              shape: 0.5
+              content: 0.5
+    loss:
+        cross_entropy: pixels
+        ce_constant: 10
+        distribution_metric: gini
+        min_region_size: 4
+        weights: [0.678, 0.19, 0.115, 0.017, 0]
+
+EvalModels_params:
+    dataset: AdaptedSegmentationDataset
+    model: ForestEnsemble
+    model_weights_path: tmp/models/*.pt.xz
+    mini_batch_size: 32
+    save_logits: False

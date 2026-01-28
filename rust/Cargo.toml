@@ -1,0 +1,19 @@
+[package]
+name = "aethon"
+version = "0.1.0"
+authors = ["Daniel Gritzner <gritzner@tnt.uni-hannover.de>"]
+edition = "2018"
+
+[dependencies]
+num = "0.4"
+rand = "0.8.4"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+debug-assertions = false
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+strip = "symbols"

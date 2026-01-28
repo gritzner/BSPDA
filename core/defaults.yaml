@@ -1,0 +1,311 @@
+__defaults: &-defaults
+    empty:
+
+__augmentation_defaults: &augmentation-defaults
+    scaling: .1
+    x_shear: 0
+    y_shear: 0
+    rotation: 180
+    h_flip: .5
+    v_flip: .5
+    contrast: .1
+    brightness: .1
+    noise: .1
+    frequency_magnitude_noise: 0
+    frequency_phase_noise: 0
+    at_test_time: True
+        
+__SegmentationDataset_defaults: &SegmentationDataset-defaults
+    channels:
+        input: [ndvi, ir, red, green, blue, depth]
+    training_samples: 750000
+    split_weights:
+        training: 70
+        validation: 15
+        test: 15
+    hide_ignored_class: True
+    erode_class_boundaries:
+        shape: rect
+        training: True
+        validation: True
+        test: True
+    normalization:
+        independent_channels: none
+        method: zscore
+    min_sample_entropy:
+        threshold: 0
+        training_histogram: False
+        apply_to_validation: False
+        apply_to_test: False
+    augmentation:
+        <<: *augmentation-defaults
+        
+__LGNDataset_defaults: &LGNDataset-defaults
+    <<: *SegmentationDataset-defaults
+    ground_truth_mapping:
+        classes: [3, 1, 4, 5, 0, 0, 0, 5, 0, 2, 2, 2, 2, 2, 5] # map to ISPRS classes
+        lut: # copy of 'lut' from datasets/ISPRSDatasetLoader.py
+        - [  0,  0,  0]
+        - [  0,  0,255]
+        - [  0,255,  0]
+        - [255,  0,  0]
+        - [255,255,  0]
+        - [255,255,255]
+    ignore_class: 5
+
+__hannover_defaults: &hannover-defaults
+    <<: *LGNDataset-defaults
+    domain: hannover
+
+__buxtehude_defaults: &buxtehude-defaults
+    <<: *LGNDataset-defaults
+    domain: buxtehude
+
+__nienburg_defaults: &nienburg-defaults
+    <<: *LGNDataset-defaults
+    domain: nienburg
+
+__vaihingen_defaults: &vaihingen-defaults
+    <<: *SegmentationDataset-defaults
+    domain: vaihingen
+    channels:
+        input: [ndvi, ir, red, green, depth]
+    split_weights:
+        training: 90
+        validation: 10
+    ignore_class: 5
+
+__potsdam_defaults: &potsdam-defaults
+    <<: *SegmentationDataset-defaults
+    domain: potsdam
+    split_weights:
+        training: 90
+        validation: 10
+    ignore_class: 5
+
+__toulouse_defaults: &toulouse-defaults
+    <<: *SegmentationDataset-defaults
+    domain: toulouse
+    channels:
+        input: [ndvi, blue2, blue, green, yellow, red, red2, ir, ir2]
+    ignore_class: 0
+
+__toulouse_full_defaults: &toulouse_full-defaults
+    <<: *SegmentationDataset-defaults
+    domain: toulouse_full
+    channels:
+        input: [ndvi, blue2, blue, green, yellow, red, red2, ir, ir2]
+    ignore_class: 0
+
+__toulouse_pan_defaults: &toulouse_pan-defaults
+    <<: *SegmentationDataset-defaults
+    domain: toulouse_pan
+    channels:
+        input: [ndvi, blue2, blue, green, yellow, red, red2, ir, ir2]
+    split_weights:
+        training: 62.5
+        validation: 37.5
+    ignore_class: 0
+
+__synthinel_defaults: &synthinel-defaults
+    <<: *SegmentationDataset-defaults
+    domain: synthinel
+    channels:
+        input: [red, green, blue]
+
+__synthinel_redroof_defaults: &synthinel_redroof-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_redroof
+
+__synthinel_paris_defaults: &synthinel_paris-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_paris
+    
+__synthinel_ancient_defaults: &synthinel_ancient-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_ancient
+    
+__synthinel_scifi_defaults: &synthinel_scifi-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_scifi
+    
+__synthinel_palace_defaults: &synthinel_palace-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_palace
+    
+__synthinel_austin_defaults: &synthinel_austin-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_austin
+    
+__synthinel_venice_defaults: &synthinel_venice-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_venice
+    
+__synthinel_modern_defaults: &synthinel_modern-defaults
+    <<: *synthinel-defaults
+    domain: synthinel_modern
+    
+__ipi_dataset_defaults: &ipi_dataset-defaults
+    <<: *SegmentationDataset-defaults
+    channels:
+        input: [ndvi, ir, red, green, blue]
+    
+__hameln_defaults: &hameln-defaults
+    <<: *ipi_dataset-defaults
+    domain: hameln
+
+__schleswig_defaults: &schleswig-defaults
+    <<: *ipi_dataset-defaults
+    domain: schleswig
+
+__mecklenburg_vorpommern_defaults: &mecklenburg_vorpommern-defaults
+    <<: *ipi_dataset-defaults
+    domain: mecklenburg_vorpommern
+
+__ipi_DA_dataset_defaults: &ipi_DA_dataset-defaults
+    <<: *SegmentationDataset-defaults
+    split_weights:
+        training: 50
+        validation: 25
+        test: 25
+    ignore_class: 5
+
+__hameln_DA_defaults: &hameln_DA-defaults
+    <<: *ipi_DA_dataset-defaults
+    domain: hameln_DA
+
+__schleswig_DA_defaults: &schleswig_DA-defaults
+    <<: *ipi_DA_dataset-defaults
+    domain: schleswig_DA
+    
+__dlr_landcover_defaults: &dlr_landcover-defaults
+    <<: *SegmentationDataset-defaults
+    domain: dlr_landcover
+    channels:
+        input: [ndvi, ir, red, green, blue, sar]
+
+__dlr_roadmaps_defaults: &dlr_roadmaps-defaults
+    <<: *SegmentationDataset-defaults
+    domain: dlr_roadmaps
+    load_full_dlr_roadmaps_annotations: True
+    channels:
+        input: [red, green, blue]
+
+__dlr_roadsegmentation_defaults: &dlr_roadsegmentation-defaults
+    <<: *SegmentationDataset-defaults
+    domain: dlr_roadsegmentation
+    channels:
+        input: [red, green, blue]
+    split_weights:
+        training: 80
+        validation: 20
+
+__isaid_defaults: &isaid-defaults
+    <<: *SegmentationDataset-defaults
+    domain: isaid
+    channels:
+        input: [red, green, blue]
+    split_weights:
+        training: 95
+        validation: 5
+    min_sample_entropy:
+        ignore_cache: False
+        create_cache: False
+        threshold: 0.04 # iSAID has many background pixels, avoid empty training samples by setting a minimum entropy level for ground truth images
+        training_histogram: False
+        apply_to_validation: False
+        apply_to_test: False
+        
+__SegForestNet_defaults: &SegForestNet-defaults
+    features:
+        context: 0
+        dct_sidechannel:
+            type: 0 # 0 = disabled, otherwise see documentation of SciPy's dctn function
+            num_features: 96
+            num_res_blocks: 0
+            dropout: 0.05
+    decoder:
+        num_blocks: 8
+        context: 1
+        intermediate_features: 96
+        use_residual_blocks: True
+        vq:
+            type: [0, 0]
+            codebook_size: 512
+            normalized_length: 0
+            loss_weights: [1, 1]
+            one_hot_during_eval: False
+            hard: True
+            temperature:
+                parameters: [epoch, epochs]
+                func: min(epoch,round(0.8*epochs))/round(0.8*epochs)
+                #func: 1-np.cos(0.5*np.pi*epoch/(epochs-1))
+                value_range: [2, 0.1]
+            loss_weight:
+                parameters: [epoch, epochs]
+                func: 0
+                value_range: [.05, .05]
+    region_map:
+        accumulation: add
+        node_weight: 1
+        softmax_temperature:
+            parameters: [epoch, epochs]
+            func: 0
+            value_range: [1, 1]
+    loss:
+        cross_entropy: pixels
+        ce_constant: 10
+        distribution_metric: gini
+        min_region_size: 4
+        weights: [.898, .022, .055, .025, 0]
+    weight_quantization:
+        enabled: False
+        bits: 4
+        min_exp: -5
+        loss_func: mse_loss
+        loss_weights: [.1, .1, .1]
+        eval_mode: 1
+        unquantized_eval_epochs: 0
+
+__SemanticSegmentation_defaults: &SemanticSegmentation-defaults
+    autoencoder: False
+    num_samples_per_epoch: 10000
+    unique_iterations: True
+    alt_loss: False
+    metric_loss:
+        weight: 0
+        delta: 0
+    optimizer:
+        type: AdamW
+        arguments:
+            betas: [0.64, 0.999]
+            weight_decay: 0.01 # AdamW PyTorch default
+    learning_rate:
+        min_value: 0
+        num_cycles: 1
+        cycle_length_factor: 2
+        num_iterations_factor: 1
+    gradient_clipping: 2
+    class_weights:
+        ignore_dataset: False
+        ignored_class_weight: 0.4
+        dynamic_exponent: 4
+    terminate_early: -1
+    entropy_based_patch_merging_during_evaluation: False
+    model_filename_extension: .pt.xz
+    delete_irrelevant_models: True
+    min_val_entropy_model_from_last_n_epochs_is_relevant: 25
+    visualize_regions: False
+    smoothing: 0.6
+    model_specific_defaults:map: # epochs, max. learning rate, mini-batch size
+        - [SegForestNet, [65, 0.0025, 12]]
+        - [FCN, [65, 0.001, 12]]
+        - [RAFCN, [65, 0.0005, 12]]
+        - [FarSeg, [65, 0.001, 12]]
+        - [PFNet, [65, 0.001, 12]]
+        - [DeepLabv3p, [65, 0.001, 12]]
+        - [UNet, [65, 0.001, 12]]
+        - [SegNeXt-tiny, [65, 0.0004, 8]]
+        - [SegNeXt-small, [65, 0.0004, 8]]
+        - [SegNeXt-base, [65, 0.0004, 8]] # SegNeXt hyperparameters have been optimized using this size configuration (base)
+        - [SegNeXt-large, [65, 0.0004, 8]]

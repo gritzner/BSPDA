@@ -1,0 +1,60 @@
+task: StyleTransfer
+output_path: tmp/styletransfer/$0__$1__$2
+clear_output_path: True
+
+SourceSegmentationDataset_params:
+    path: $0/$1
+    random_seed: 0
+    patch_size: [256, 256]
+    training_samples: 10000
+    normalization:
+        independent_channels: none
+        method: zscore
+        fixed_depth_std: 30
+    augmentation:
+        <<: *augmentation-defaults
+
+TargetSegmentationDataset_params:
+    path: $0/$2
+    random_seed: 0
+    patch_size: [256, 256]
+    training_samples: 10000
+    normalization:
+        independent_channels: none
+        method: zscore
+        fixed_depth_std: 30
+    augmentation:
+        <<: *augmentation-defaults
+              
+StyleTransfer_params:
+    source_dataset: [AdaptedSegmentationDataset, SourceSegmentationDataset]
+    target_dataset: [AdaptedSegmentationDataset, TargetSegmentationDataset]
+    memory_limit: 16
+    augmentation:
+        phase_one:
+            rotate_and_flip: False
+            overlap: 0.15
+        phase_two:
+            rotate_and_flip: True
+            overlap: 0.75
+    fft:
+        windowing:
+            enabled: False
+            func: hanning
+            beta: 14
+            circular_symmetry: True
+        across_channels: False
+        sampling_area_shape: circle
+        amplitude_radius: 0.986
+        amplitude_center: True
+        phase_radius: 0.04
+        separate_amplitude_and_phase: True
+        per_coefficient: True
+        method: $3
+    ignored_subsets: []
+    save_dataset: true
+    #model: ForestEnsemble
+    model_epochs: [0, 1]
+    model_weights_path: tmp/*.pt.xz
+    mini_batch_size: 32
+    save_logits: False
